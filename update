@@ -1,0 +1,98 @@
+#!/bin/bash
+#Author:黄兴立
+#Function:更新新脚本
+
+shell_dir="shells" #远程仓库存放自定义脚本的文件夹名
+work_dir=$(cd $(dirname $0); pwd) #update脚本的工作路径
+ws_dir=$work_dir'/'$shell_dir #远程仓库存放自定义脚本的文件夹在本地的路径
+system_dir="/usr/bin" #系统存放命令脚本的路径
+readonly ws_dir shell_dir work_dir system_dir
+password="" #用户root密码
+count_fail=0 #失败个数
+count_succ=0 #成功个数
+file="" #当前操作的文件名
+
+function removeFile() 
+{
+    if [ -f ${system_dir}/${file} ]
+    then
+        echo ${password} | sudo -S rm ${system_dir}/${file}
+        if [ ${?} != 0 ]
+        then
+            echo "FAIL : You have an error when remove the old file(${file})"
+            return 1
+        else
+            return 0
+        fi
+    fi
+    return 0
+}
+
+function copyFile()
+{
+    echo ${password} | sudo -S cp ${ws_dir}/${file} ${system_dir}/${file}
+    if [ $? != 0 ]
+    then
+        echo "FAIL : You have an error when copy the new file(${file})"
+        return 1
+    else
+        return 0
+    fi
+    return 0
+}
+
+function chmodFile()
+{
+    echo ${password} | sudo -S chmod 755 ${system_dir}/${file} 
+    if [ $? != 0 ]
+    then 
+        echo "You have an error when change the file(${file})'s mode"
+        return 1
+    else
+        return 0
+    fi
+    return 0
+}
+
+if [ ! -d ${ws_dir} ]
+then
+    echo "ERROR"
+    echo "You don't have the directory(${shell_dir}) for your shells"
+    echo "Please make a directory(${shell_dir}) and put your shells in it"
+else
+    echo -n "Please enter your password : "
+    read password
+    readonly password
+    for file in $*
+    do
+        if [ ! -f ${ws_dir}/${file} ]
+        then
+            let count_fail+=1
+            echo "FAIL : You don't have any file(${file})"
+        else
+            removeFile
+            if [ $? == 0 ]
+            then
+                copyFile
+                if [ $? == 0 ]
+                then
+                    chmodFile
+                    if [ $? == 0 ]
+                    then
+                        echo "SUCCESS : System shell(${file}) updated successfully"
+                        let count_succ+=1
+                    else
+                        let count_fail+=1
+                    fi
+                else
+                    let count_fail+=1
+                fi
+            else
+                let count_fail+=1
+            fi
+        fi
+    done
+    echo "SHELL DONE"
+    echo "SUCCESS  ${count_succ}"
+    echo "FAIL     ${count_fail}"
+fi

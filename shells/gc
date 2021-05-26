@@ -1,0 +1,5 @@
+#!/bin/bash
+#Author:黄兴立
+#Function:git clone
+
+echo $1
